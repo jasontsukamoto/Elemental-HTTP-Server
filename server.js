@@ -19,7 +19,7 @@ function handleRequest(request, response) {
       -parse form data
       -save file in designated public directory based on content
       -if file does not exist named after the elements name, append with html file extension
-      -respond to POST with http response code 200, content type application/json and content body of {'success' : true}
+      -respond to POST with http response code 200 {'success' : true}
    */
 
   if (request.method === Method.POST) {
@@ -54,6 +54,7 @@ function handleRequest(request, response) {
 
           });
         }
+
         //end the response
         response.end();
       });
@@ -68,7 +69,7 @@ function handleRequest(request, response) {
                 '\t<link rel="stylesheet" href="/css/styles.css">\n' +
               '</head>\n' +
               '<body>\n' +
-                '\t<h1>'+ elementName + '</h1>\n' +
+                '\t<h1>' + elementName + '</h1>\n' +
                 '\t<h2>' + elementSymbol + '</h2>\n' +
                 '\t<h3>Atomic number ' + elementAtomicNumber + '</h3>\n' +
                 '\t<p>' + elementDescription + '</p>\n' +
@@ -76,15 +77,52 @@ function handleRequest(request, response) {
               '</body>\n' +
               '</html>\n'
     }
+  } else if (request.method === Method.GET) {
+    /*
+        If request.method is GET
+          -serve contents in public directory if matching uri
+          -if url doesn't exist reutn 404 response code and html contents of 404.html
+        -end connection
+     */
+    var uri = request.url;
 
-  /*
-      If request.method is GET
-        -serve contents in public directory if matching uri
-        -if url doesn't exist reutn 404 response code and html contents of 404.html
-      -end connection
-   */
+    switch (uri) {
+      case '/':
+        uri = 'index.html';
+        break;
+      case '/hydrogen.html':
+        uri = 'hydrogen.html';
+        break;
+      case '/helium.html':
+        uri = 'helium.html';
+        break;
+      case '/404.html':
+        uri = '404.html';
+        break;
+      case 'styles.css':
+        uri = 'css/styles.css';
+        break;
+    }
 
-}
+    fs.exists(PUBLIC_DIR + uri, function(exists) {
+      if (exists) {
+        fs.readFile(PUBLIC_DIR + uri, function(err, data) {
+          if (err) throw err;
+
+          response.write(data);
+          response.end();
+
+        });
+      } else {
+        response.statusCode = 404;
+        response.write('<h1>File does not exist</h1>!');
+        response.end();
+      }
+    });
+
+  }
+
+
 
 }
 
