@@ -46,17 +46,19 @@ function handleRequest(request, response) {
         if (exists) {
           // respond 200, {"succes" : false}
           response.write("{\"success\" : false}");
+          //end the response
+          response.end();
         } else {
           // -create new file in public
           fs.writeFile(PUBLIC_DIR + pathname, htmlGenerator(postData.elementName, postData.elementSymbol, postData.elementAtomicNumber, postData.elementDescription), function(err) {
             // -respond 200, {"success": true}
             response.write("{\"success\" : true}");
-
+            //end the response
+            response.end();
           });
         }
 
-        //end the response
-        response.end();
+
       });
     });
 
