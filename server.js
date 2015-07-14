@@ -14,6 +14,24 @@ var Method = {
 var server = http.createServer(handleRequest);
 
 
+function htmlGenerator(element) {
+  return '<!DOCTYPE html>\n' +
+          '<html lang="en">\n' +
+          '<head>\n' +
+            '\t<meta charset="UTF-8">\n' +
+            '\t<title>The Elements - ' + element.elementName + '</title>\n' +
+            '\t<link rel="stylesheet" href="/css/styles.css">\n' +
+          '</head>\n' +
+          '<body>\n' +
+            '\t<h1>' + element.elementName + '</h1>\n' +
+            '\t<h2>' + element.elementSymbol + '</h2>\n' +
+            '\t<h3>Atomic number ' + element.elementAtomicNumber + '</h3>\n' +
+            '\t<p>' + element.elementDescription + '</p>\n' +
+            '\t<p><a href="/">back</a></p>\n' +
+          '</body>\n' +
+          '</html>\n'
+}
+
 function handleRequest(request, response) {
   var requestBody = '';
   /*
@@ -53,73 +71,39 @@ function handleRequest(request, response) {
           response.end();
         } else {
           // -create new file in public
-          fs.writeFile(PUBLIC_DIR + ELEMENTS_DIR + pathname, htmlGenerator(postData.elementName, postData.elementSymbol, postData.elementAtomicNumber, postData.elementDescription), function(err) {
+          fs.writeFile(PUBLIC_DIR + ELEMENTS_DIR + pathname, htmlGenerator(postData), function(err) {
             // -respond 200, {"success": true}
             response.write("{\"success\" : true}");
             //end the response
             response.end();
-          });
 
-          // auto update index
-          // fs.stat(PUBLIC_DIR + 'index.html', function(err, stats) {
-          //   fs.open(PUBLIC_DIR + 'index.html', 'a+', function(error, fd) {
-          //     var buffer = new Buffer(stats.size);
-          //     var data = buffer.toString('utf8');
-          //     console.log(buffer)
+            fs.readdir(PUBLIC_DIR + ELEMENTS_DIR, function(err, files) {
+              counter = files.length;
+            });
 
-          //     fs.write(fd, 'hello', 34, buffer.length, function(err, bytesRead, buffer) {
-          //       var data = buffer.toString('utf8');
-          //       fs.close(fd)
-          //     });
-          //   });
-          // });
+            fs.readFile(PUBLIC_DIR + 'index.html', function(err, data) {
+              var indexHTML = data.toString('utf-8');
+              var splitLine = '<!-- links here -->';
+              var splitLineLength = splitLine.length;
+              var split = indexHTML.indexOf(splitLine);
+              var top = indexHTML.substring(0, split);
+              var li = '<li><a href="/elements/' + pathname + '">' +  postData.elementName + '</a></li>\n';
+              var h3StartSubstring = indexHTML.substring(230, 244);
+              var h3EndSubstring = indexHTML.substring(245, 250);
+              var h3String = h3StartSubstring + counter + h3EndSubstring;
+              console.log(h3String)
+              var bottom = indexHTML.substring(split + splitLineLength, indexHTML.length);
+              fs.writeFile(PUBLIC_DIR + 'index.html', top + li + splitLine + bottom, function() {
 
-          fs.readdir(PUBLIC_DIR + ELEMENTS_DIR, function(err, files) {
-            counter = files.length;
-          });
-
-          fs.readFile(PUBLIC_DIR + 'index.html', function(err, data) {
-            var indexHTML = data.toString('utf-8');
-            var splitLine = '<!-- links here -->';
-            var splitLineLength = splitLine.length;
-            var split = indexHTML.indexOf(splitLine);
-            var top = indexHTML.substring(0, split);
-            var li = '<li><a href="/' + pathname + '">' +  postData.elementName + '</a></li>\n';
-            var h3StartSubstring = indexHTML.substring(230, 244);
-            var h3EndSubstring = indexHTML.substring(245, 250);
-            var h3String = h3StartSubstring + counter + h3EndSubstring;
-            console.log(h3String)
-            var bottom = indexHTML.substring(split + splitLineLength, indexHTML.length);
-            fs.writeFile(PUBLIC_DIR + 'index.html', top + li + splitLine + bottom, function() {
-
+              });
             });
           });
-
-
         }
       });
-
     });
 
 
 
-    function htmlGenerator(elementName, elementSymbol, elementAtomicNumber, elementDescription) {
-      return '<!DOCTYPE html>\n' +
-              '<html lang="en">\n' +
-              '<head>\n' +
-                '\t<meta charset="UTF-8">\n' +
-                '\t<title>The Elements - ' + elementName + '</title>\n' +
-                '\t<link rel="stylesheet" href="/css/styles.css">\n' +
-              '</head>\n' +
-              '<body>\n' +
-                '\t<h1>' + elementName + '</h1>\n' +
-                '\t<h2>' + elementSymbol + '</h2>\n' +
-                '\t<h3>Atomic number ' + elementAtomicNumber + '</h3>\n' +
-                '\t<p>' + elementDescription + '</p>\n' +
-                '\t<p><a href="/">back</a></p>\n' +
-              '</body>\n' +
-              '</html>\n'
-    }
   } else if (request.method === Method.GET) {
     /*
         If request.method is GET
@@ -133,33 +117,21 @@ function handleRequest(request, response) {
       case '/':
         uri = 'index.html';
         break;
-      case '/hydrogen.html':
-        uri = 'hydrogen.html';
-        break;
-      case '/helium.html':
-        uri = 'helium.html';
-        break;
-      case '/404.html':
-        uri = '404.html';
-        break;
-      case 'styles.css':
-        uri = 'css/styles.css';
-        break;
     }
 
-    fs.exists(PUBLIC_DIR + ELEMENTS_DIR + uri, function(exists) {
-      if (exists) {
-        fs.readFile(PUBLIC_DIR + ELEMENTS_DI + uri, function(err, data) {
+    fs.exists(PUBLIC_DIR + uri, function(exists) {
+      if (!exists) {
+        response.statusCode = 404;
+        response.write('<h1>File does not exist</h1>!');
+        response.end();
+      } else {
+        fs.readFile(PUBLIC_DIR + uri, function(err, data) {
           if (err) throw err;
 
           response.write(data);
           response.end();
 
         });
-      } else {
-        response.statusCode = 404;
-        response.write('<h1>File does not exist</h1>!');
-        response.end();
       }
     });
   }
