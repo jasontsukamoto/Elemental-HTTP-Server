@@ -8,7 +8,8 @@ var ELEMENTS_DIR = 'elements/';
 var Method = {
   GET : 'GET',
   POST : 'POST',
-  PUT : 'PUT'
+  PUT : 'PUT',
+  DELETE : 'DELETE'
 };
 
 var server = http.createServer(handleRequest);
@@ -71,19 +72,6 @@ function handleRequest(request, response) {
         } else {
           // -create new file in public
           fs.writeFile(PUBLIC_DIR + ELEMENTS_DIR + pathname, htmlGenerator(postData), function(err) {
-            // -respond 200, {"success": true}
-            response.write("{\"success\" : true}");
-            //end the response
-            response.end();
-
-            fs.readdir(PUBLIC_DIR + ELEMENTS_DIR, function(err, files) {
-              var elements = files.filter(function(value) {
-                return value.indexOf('html') > -1
-              });
-              counter = elements.length;
-            });
-
-            fs.readFile(PUBLIC_DIR + 'index.html', function(err, data) {
               var indexHTML = data.toString('utf-8');
               var counterStart = '<!-- counter here -->';
               var counterStartLength = counterStart.length;
@@ -100,6 +88,19 @@ function handleRequest(request, response) {
               var h3Substring = indexHTML.indexOf(counterStart) + counterStartLength;
               var counterUpdate = '<h3>These are ' + counter + '</h3>'
               var bottom = indexHTML.substring(split + splitLineLength, indexHTML.length);
+            // -respond 200, {"success": true}
+            response.write("{\"success\" : true}");
+            //end the response
+            response.end();
+
+            fs.readdir(PUBLIC_DIR + ELEMENTS_DIR, function(err, files) {
+              var elements = files.filter(function(value) {
+                return value.indexOf('html') > -1
+              });
+              counter = elements.length;
+            });
+
+            fs.readFile(PUBLIC_DIR + 'index.html', function(err, data) {
               fs.writeFile(PUBLIC_DIR + 'index.html', top + counterUpdate + indexBody + li + bottom, function() {
 
               });
@@ -149,7 +150,6 @@ function handleRequest(request, response) {
     request.on('end', function() {
       var postData = querystring.parse(requestBody);
       var pathname = postData.elementName + '.html';
-      console.log(pathname);
 
       /*
         check if pathname exists
@@ -172,7 +172,61 @@ function handleRequest(request, response) {
         }
       });
     });
+  } else if (request.method === Method.DELETE) {
+    var pathname = request.url.split('').shift();
+
+    request.on('data', function() {
+
+    });
+
+    request.on('end', function() {
+
+      fs.exists(PUBLIC_DIR + request.url, function(exists) {
+        if (!exists) {
+          response.write("{ error : resource " + request.url + " does not exist }");
+          response.end();
+        } else {
+          //path name exists
+          //  delete from elements folder
+          //update index.html to reflect change
+
+          fs.readFile(PUBLIC_DIR + 'index.html', function(err, data) {
+
+            var liRegex = /(<li>\n.+\n.+)/gim;
+            var indexHTML = data.toString();
+            var matchResults = indexHTML.match(liRegex);
+            var outputResults = [];
+            for (var i = 0; i < matchResults.length; i++) {
+              if (matchResults[i].indexOf(request.url) === -1) {
+                outputResults.push(matchResults[i]);
+              }
+
+            }
+            var splitLink = '<!-- start links -->';
+            var topSplitter = indexHTML.indexOf(splitLink);
+            var top = indexHTML.substring(0, topSplitter);
+
+            var bottomSplit = '<!-- links here -->';
+            var bottomSplitter = indexHTML.indexOf(bottomSplit);
+            var bottom = indexHTML.substring(bottomSplitter, indexHTML.length);
+
+            var middle = '';
+            for (var j = 0; j < outputResults.length; j++) {
+              middle += outputResults[j];
+              console.log('output');
+            }
+
+            fs.writeFile(PUBLIC_DIR + 'index.html', top + middle + bottom, function() {
+
+            });
+          });
+          response.end();
+        }
+      })
+    });
+
   }
+
 }
 
 server.listen(PORT, function() {
