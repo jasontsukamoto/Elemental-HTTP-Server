@@ -4,6 +4,7 @@ var querystring = require('querystring');
 var PORT = 9090;
 var HOST = '0.0.0.0';
 var PUBLIC_DIR = './public/';
+var ELEMENTS_DIR = './elements/';
 var Method = {
   GET : 'GET',
   POST : 'POST',
@@ -11,6 +12,7 @@ var Method = {
 };
 
 var server = http.createServer(handleRequest);
+
 
 function handleRequest(request, response) {
   var requestBody = '';
@@ -40,9 +42,10 @@ function handleRequest(request, response) {
     request.on('end', function() {
       var postData = querystring.parse(requestBody);
       var pathname = postData.elementName.toLowerCase() + '.html';
+      var counter;
 
       //check if the pathname exists
-      fs.exists(PUBLIC_DIR + pathname, function(exists) {
+      fs.exists(PUBLIC_DIR + ELEMENTS_DIR + pathname, function(exists) {
         if (exists) {
           // respond 200, {"succes" : false}
           response.write("{\"success\" : false}");
@@ -50,17 +53,55 @@ function handleRequest(request, response) {
           response.end();
         } else {
           // -create new file in public
-          fs.writeFile(PUBLIC_DIR + pathname, htmlGenerator(postData.elementName, postData.elementSymbol, postData.elementAtomicNumber, postData.elementDescription), function(err) {
+          fs.writeFile(PUBLIC_DIR + ELEMENTS_DIR + pathname, htmlGenerator(postData.elementName, postData.elementSymbol, postData.elementAtomicNumber, postData.elementDescription), function(err) {
             // -respond 200, {"success": true}
             response.write("{\"success\" : true}");
             //end the response
             response.end();
           });
+
+          // auto update index
+          // fs.stat(PUBLIC_DIR + 'index.html', function(err, stats) {
+          //   fs.open(PUBLIC_DIR + 'index.html', 'a+', function(error, fd) {
+          //     var buffer = new Buffer(stats.size);
+          //     var data = buffer.toString('utf8');
+          //     console.log(buffer)
+
+          //     fs.write(fd, 'hello', 34, buffer.length, function(err, bytesRead, buffer) {
+          //       var data = buffer.toString('utf8');
+          //       fs.close(fd)
+          //     });
+          //   });
+          // });
+
+          fs.readdir(PUBLIC_DIR + ELEMENTS_DIR, function(err, files) {
+            counter = files.length;
+          });
+
+          fs.readFile(PUBLIC_DIR + 'index.html', function(err, data) {
+            var indexHTML = data.toString('utf-8');
+            var splitLine = '<!-- links here -->';
+            var splitLineLength = splitLine.length;
+            var split = indexHTML.indexOf(splitLine);
+            var top = indexHTML.substring(0, split);
+            var li = '<li><a href="/' + pathname + '">' +  postData.elementName + '</a></li>\n';
+            var h3StartSubstring = indexHTML.substring(230, 244);
+            var h3EndSubstring = indexHTML.substring(245, 250);
+            var h3String = h3StartSubstring + counter + h3EndSubstring;
+            console.log(h3String)
+            var bottom = indexHTML.substring(split + splitLineLength, indexHTML.length);
+            fs.writeFile(PUBLIC_DIR + 'index.html', top + li + splitLine + bottom, function() {
+
+            });
+          });
+
+
         }
-
-
       });
+
     });
+
+
 
     function htmlGenerator(elementName, elementSymbol, elementAtomicNumber, elementDescription) {
       return '<!DOCTYPE html>\n' +
@@ -106,9 +147,9 @@ function handleRequest(request, response) {
         break;
     }
 
-    fs.exists(PUBLIC_DIR + uri, function(exists) {
+    fs.exists(PUBLIC_DIR + ELEMENTS_DIR + uri, function(exists) {
       if (exists) {
-        fs.readFile(PUBLIC_DIR + uri, function(err, data) {
+        fs.readFile(PUBLIC_DIR + ELEMENTS_DI + uri, function(err, data) {
           if (err) throw err;
 
           response.write(data);
@@ -121,11 +162,7 @@ function handleRequest(request, response) {
         response.end();
       }
     });
-
   }
-
-
-
 }
 
 server.listen(PORT, function() {
