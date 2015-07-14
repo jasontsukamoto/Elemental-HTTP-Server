@@ -4,15 +4,14 @@ var querystring = require('querystring');
 var PORT = 9090;
 var HOST = '0.0.0.0';
 var PUBLIC_DIR = './public/';
-var ELEMENTS_DIR = './elements/';
+var ELEMENTS_DIR = 'elements/';
 var Method = {
   GET : 'GET',
   POST : 'POST',
-  HEAD : 'HEAD'
+  PUT : 'PUT'
 };
 
 var server = http.createServer(handleRequest);
-
 
 function htmlGenerator(element) {
   return '<!DOCTYPE html>\n' +
@@ -110,8 +109,6 @@ function handleRequest(request, response) {
       });
     });
 
-
-
   } else if (request.method === Method.GET) {
     /*
         If request.method is GET
@@ -141,6 +138,39 @@ function handleRequest(request, response) {
 
         });
       }
+    });
+  } else if (request.method === Method.PUT) {
+    var requestBody = '';
+
+    request.on('data', function(chunk) {
+      requestBody += chunk;
+    });
+
+    request.on('end', function() {
+      var postData = querystring.parse(requestBody);
+      var pathname = postData.elementName + '.html';
+      console.log(pathname);
+
+      /*
+        check if pathname exists
+          -if it doesnt
+            -throw error
+          -else update page
+       */
+
+      fs.exists(PUBLIC_DIR + ELEMENTS_DIR + pathname, function(exists) {
+        if (!exists) {
+          response.write("{error : resource /" + pathname + " does not exist}");
+          response.end();
+        } else {
+          fs.writeFile(PUBLIC_DIR + ELEMENTS_DIR + pathname, htmlGenerator(postData), function(err) {
+            // -respond 200, {"success": true}
+            response.write("{\"success\" : true}");
+            //end the response
+            response.end();
+          });
+        }
+      });
     });
   }
 }
