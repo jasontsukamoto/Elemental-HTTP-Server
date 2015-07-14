@@ -78,22 +78,30 @@ function handleRequest(request, response) {
             response.end();
 
             fs.readdir(PUBLIC_DIR + ELEMENTS_DIR, function(err, files) {
-              counter = files.length;
+              var elements = files.filter(function(value) {
+                return value.indexOf('html') > -1
+              });
+              counter = elements.length;
             });
 
             fs.readFile(PUBLIC_DIR + 'index.html', function(err, data) {
               var indexHTML = data.toString('utf-8');
+              var counterStart = '<!-- counter here -->';
+              var counterStartLength = counterStart.length;
+              var counterEnd = '<!-- end counter -->';
+              var counterEndLength = counterEnd.length;
               var splitLine = '<!-- links here -->';
               var splitLineLength = splitLine.length;
+              var counterBeginSplit = indexHTML.indexOf(counterStart);
+              var top = indexHTML.substring(0, counterBeginSplit + counterStartLength);
+              var counterEndSplit = indexHTML.indexOf(counterEnd);
               var split = indexHTML.indexOf(splitLine);
-              var top = indexHTML.substring(0, split);
-              var li = '<li><a href="/elements/' + pathname + '">' +  postData.elementName + '</a></li>\n';
-              var h3StartSubstring = indexHTML.substring(230, 244);
-              var h3EndSubstring = indexHTML.substring(245, 250);
-              var h3String = h3StartSubstring + counter + h3EndSubstring;
-              console.log(h3String)
+              var indexBody = indexHTML.substring(counterEndSplit, split);
+              var li = '<li><a href="/elements/' + pathname + '">' +  postData.elementName + '</a></li>\n' + splitLine;
+              var h3Substring = indexHTML.indexOf(counterStart) + counterStartLength;
+              var counterUpdate = '<h3>These are ' + counter + '</h3>'
               var bottom = indexHTML.substring(split + splitLineLength, indexHTML.length);
-              fs.writeFile(PUBLIC_DIR + 'index.html', top + li + splitLine + bottom, function() {
+              fs.writeFile(PUBLIC_DIR + 'index.html', top + counterUpdate + indexBody + li + bottom, function() {
 
               });
             });
